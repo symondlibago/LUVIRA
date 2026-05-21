@@ -1,0 +1,16 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/semaglutide",      "destination": "/index.html" },
+    { "source": "/tesamorelin",      "destination": "/index.html" },
+    { "source": "/tirzeptazide",     "destination": "/index.html" },
+    { "source": "/bpc-157",          "destination": "/index.html" },
+    { "source": "/retatrutide",      "destination": "/index.html" },
+    { "source": "/nad",              "destination": "/index.html" },
+    { "source": "/ghk-cu",           "destination": "/index.html" },
+    { "source": "/thymosin-alpha-1", "destination": "/index.html" },
+    { "source": "/mots-c",           "destination": "/index.html" },
+    { "source": "/igf-1-lr3",        "destination": "/index.html" },
+    { "source": "/glow-blend",       "destination": "/index.html" }
+  ]
+}
