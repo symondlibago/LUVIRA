@@ -497,23 +497,25 @@ kbd {
   background: rgba(0,0,0,.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  display: grid;
-  grid-template-rows: 1fr auto;
-  align-items: center; justify-items: center;
-  padding: clamp(60px, 8vh, 90px) clamp(12px, 3vw, 30px) clamp(80px, 10vh, 110px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2.4vh, 22px);
+  padding: clamp(56px, 8vh, 86px) clamp(8px, 3vw, 30px) clamp(20px, 4vh, 36px);
   animation: fade .4s var(--ease-out);
 }
 .lb-stage {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  width: 100%; height: 100%;
-  gap: clamp(8px, 2vw, 20px);
+  width: 100%;
+  flex: 0 1 auto;
 }
 .lightbox-card {
   position: relative;
-  width: min(540px, 92vw);
-  height: 100%;
-  max-height: calc(min(540px, 92vw) * 1.4);
+  /* Pick the smallest of: 540px, 86% viewport width, or width that keeps the
+     card under 70% viewport height (height = width * 7/5). */
+  width: min(540px, 86vw, calc(70vh * 5 / 7));
   aspect-ratio: 5 / 7;
   border-radius: var(--radius);
   overflow: hidden;
@@ -540,28 +542,32 @@ kbd {
   -webkit-user-drag: none;
 }
 
-/* Lightbox arrows */
+/* Lightbox arrows — absolute overlay so they don't push the card */
 .lb-nav {
-  width: 48px; height: 48px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px; height: 46px;
   border-radius: 50%;
   display: grid; place-items: center;
   color: var(--ink-soft);
   border: 1px solid rgba(200,168,90,.3);
-  background: rgba(10,10,12,.6);
+  background: rgba(10,10,12,.65);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  flex-shrink: 0;
   transition: transform .45s var(--ease-out), color .3s var(--ease),
               border-color .3s var(--ease), background-color .3s var(--ease);
   z-index: 3;
 }
+.lb-prev { left: clamp(4px, 2vw, 14px); }
+.lb-next { right: clamp(4px, 2vw, 14px); }
 .lb-nav:hover {
   color: var(--gold-2);
   border-color: var(--gold);
-  background: rgba(200,168,90,.12);
-  transform: scale(1.06);
+  background: rgba(200,168,90,.14);
+  transform: translateY(-50%) scale(1.06);
 }
-.lb-nav:active { transform: scale(.94); }
+.lb-nav:active { transform: translateY(-50%) scale(.94); }
 
 /* Controls strip below the card */
 .lb-controls {
@@ -795,15 +801,36 @@ body.is-kiosk .lightbox-card {
   .lb-share-label { display: none; }
   .lb-share-url { font-size: .64rem; max-width: 50vw; }
   .lb-copy { padding: 6px 9px; font-size: .6rem; }
-  .lb-nav { width: 40px; height: 40px; }
-  .lb-controls { gap: 8px; margin-top: 12px; }
-  .lb-counter { font-size: .9rem; letter-spacing: .18em; }
-  .lb-product { font-size: .95rem; }
+  .lightbox {
+    padding: clamp(48px, 7vh, 64px) 4px clamp(14px, 3vh, 24px);
+    gap: 10px;
+  }
+  .lightbox-card {
+    /* On mobile, leave ~110px for top brand/close + ~140px for controls below */
+    width: min(86vw, calc((100vh - 250px) * 5 / 7));
+  }
+  .lb-nav {
+    width: 38px; height: 38px;
+    background: rgba(10,10,12,.78);
+  }
+  .lb-prev { left: 4px; }
+  .lb-next { right: 4px; }
+  .lb-controls { gap: 8px; }
+  .lb-counter { font-size: .88rem; letter-spacing: .18em; }
+  .lb-product { font-size: .9rem; line-height: 1.3; }
   .lb-dots { padding: 5px 8px; gap: 6px; }
   .lb-dot { width: 6px; height: 6px; }
   .lb-dot.is-active { width: 18px; }
-  .lightbox { padding: 50px 8px 80px; }
-  body.is-kiosk .kiosk-brand { font-size: .78rem; letter-spacing: .35em; }
+  body.is-kiosk .kiosk-brand { font-size: .78rem; letter-spacing: .35em; top: 14px; }
+}
+
+/* Extra-narrow phones (≤ 380px) */
+@media (max-width: 380px) {
+  .lb-nav { width: 34px; height: 34px; }
+  .lb-nav svg { width: 18px; height: 18px; }
+  .lightbox-card { width: min(88vw, calc((100vh - 230px) * 5 / 7)); }
+  .lb-counter { font-size: .78rem; }
+  .lb-product { font-size: .82rem; }
 }
 
 @media (max-width: 360px) {
