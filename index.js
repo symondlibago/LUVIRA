@@ -1,20 +1,29 @@
 /* =========================================================
    LUVIRA × JoviRX — Interactive Postcard Gallery
+   Each product has 6 pages. Gallery shows page 1 as the cover.
+   Zoom-in opens a 6-page carousel.
    ========================================================= */
 
-const POSTCARDS = [
-  { slug: 'semaglutide',       name: 'Semaglutide',                         front: 'public/1.png',  back: 'public/2.png'  },
-  { slug: 'tesamorelin',       name: 'Tesamorelin',                         front: 'public/3.png',  back: 'public/4.png'  },
-  { slug: 'tirzeptazide',      name: 'Tirzeptazide',                        front: 'public/5.png',  back: 'public/6.png'  },
-  { slug: 'bpc-157',           name: 'BPC-157',                             front: 'public/7.png',  back: 'public/8.png'  },
-  { slug: 'retatrutide',       name: 'Retatrutide',                         front: 'public/9.png',  back: 'public/10.png' },
-  { slug: 'nad',               name: 'NAD+',                                front: 'public/11.png', back: 'public/12.png' },
-  { slug: 'ghk-cu',            name: 'GHK-Cu',                              front: 'public/13.png', back: 'public/14.png' },
-  { slug: 'thymosin-alpha-1',  name: 'Thymosin Alpha 1',                    front: 'public/15.png', back: 'public/16.png' },
-  { slug: 'mots-c',            name: 'MOTS-C',                              front: 'public/17.png', back: 'public/18.png' },
-  { slug: 'igf-1-lr3',         name: 'IGF-1-LR3',                           front: 'public/19.png', back: 'public/20.png' },
-  { slug: 'glow-blend',        name: 'BPC-157 + TB4 + GHK-Cu (Glow Blend)', front: 'public/21.png', back: 'public/22.png' },
+const PRODUCTS = [
+  { slug: 'semaglutide',       name: 'Semaglutide'                         },
+  { slug: 'tesamorelin',       name: 'Tesamorelin'                         },
+  { slug: 'tirzeptazide',      name: 'Tirzeptazide'                        },
+  { slug: 'bpc-157',           name: 'BPC-157'                             },
+  { slug: 'retatrutide',       name: 'Retatrutide'                         },
+  { slug: 'nad',               name: 'NAD+'                                },
+  { slug: 'ghk-cu',            name: 'GHK-Cu'                              },
+  { slug: 'thymosin-alpha-1',  name: 'Thymosin Alpha 1'                    },
+  { slug: 'mots-c',            name: 'MOTS-C'                              },
+  { slug: 'igf-1-lr3',         name: 'IGF-1-LR3'                           },
+  { slug: 'glow-blend',        name: 'BPC-157 + TB4 + GHK-Cu (Glow Blend)' },
 ];
+
+// Build the 6-page arrays automatically: postcard N → images (N*6-5)..(N*6)
+const POSTCARDS = PRODUCTS.map((p, i) => {
+  const start = i * 6 + 1;
+  const pages = Array.from({ length: 6 }, (_, k) => `public/${start + k}.png`);
+  return { ...p, cover: pages[0], pages };
+});
 
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -30,20 +39,25 @@ const gridOverlay = $('#gridOverlay');
 const gridCards   = $('#gridCards');
 const viewToggle  = $('#viewToggle');
 const closeGrid   = $('#closeGrid');
+
+// Lightbox
 const lightbox    = $('#lightbox');
 const lbCard      = $('#lightboxCard');
-const lbFront     = $('#lbFront');
-const lbBack      = $('#lbBack');
-const lightboxClose = $('#lightboxClose');
-const lightboxFlip  = $('#lightboxFlip');
+const lbTrack     = $('#lbTrack');
+const lbPrev      = $('#lbPrev');
+const lbNext      = $('#lbNext');
+const lbPageNum   = $('#lbPageNum');
+const lbPageTotal = $('#lbPageTotal');
+const lbDots      = $('#lbDots');
+const lbProduct   = $('#lbProduct');
 const lbShareUrl  = $('#lbShareUrl');
 const lbCopyBtn   = $('#lbCopyBtn');
+const lightboxClose = $('#lightboxClose');
 
 let currentIndex = 0;
 let cardEls = [];
-let isKiosk = false;   // true when a slug URL was opened directly
-
-const FLIP_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3M21 12a9 9 0 0 1-15.5 6.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>`;
+let isKiosk = false;
+let lbPage = 0;
 
 /* ---------- URL helpers ---------- */
 function findIndexBySlug(slug) {
@@ -52,21 +66,18 @@ function findIndexBySlug(slug) {
   return POSTCARDS.findIndex(p => p.slug === s);
 }
 function getSlugFromURL() {
-  // Pathname
   let path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
   if (path.endsWith('index.html')) path = '';
   if (path) {
     const idx = findIndexBySlug(path);
     if (idx >= 0) return POSTCARDS[idx].slug;
   }
-  // Query
   const params = new URLSearchParams(window.location.search);
   const q = (params.get('p') || '').toLowerCase();
   if (q) {
     const idx = findIndexBySlug(q);
     if (idx >= 0) return POSTCARDS[idx].slug;
   }
-  // Hash
   const h = window.location.hash.replace(/^#/, '').toLowerCase();
   if (h) {
     const idx = findIndexBySlug(h);
@@ -74,28 +85,11 @@ function getSlugFromURL() {
   }
   return null;
 }
-function buildShareURL(slug) {
-  // Use clean path so QR-scanned URL looks like https://site.com/semaglutide
-  return `${window.location.origin}/${slug}`;
-}
-function pushURL(slug) {
-  if (!slug) {
-    if (window.location.pathname !== '/') {
-      history.pushState({}, '', '/');
-    }
-    return;
-  }
-  history.pushState({ slug }, '', `/${slug}`);
-}
-function replaceURL(slug) {
-  if (!slug) {
-    history.replaceState({}, '', '/');
-    return;
-  }
-  history.replaceState({ slug }, '', `/${slug}`);
-}
+function buildShareURL(slug) { return `${window.location.origin}/${slug}`; }
+function pushURL(slug)    { history.pushState   (slug ? { slug } : {}, '', slug ? `/${slug}` : '/'); }
+function replaceURL(slug) { history.replaceState(slug ? { slug } : {}, '', slug ? `/${slug}` : '/'); }
 
-/* ---------- Build cards ---------- */
+/* ---------- Build gallery ---------- */
 function buildCards() {
   capTotal.textContent = String(POSTCARDS.length).padStart(2, '0');
 
@@ -105,16 +99,17 @@ function buildCards() {
     card.dataset.index = i;
     card.dataset.slug = p.slug;
     card.setAttribute('role', 'button');
-    card.setAttribute('aria-label', `${p.name} postcard — click to flip`);
+    card.setAttribute('aria-label', `${p.name} — click to view all pages`);
     card.innerHTML = `
       <div class="card-inner">
         <div class="face front">
-          <img src="${p.front}" alt="${p.name} postcard front" loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async" draggable="false" />
-          <span class="flip-badge">${FLIP_SVG} Flip</span>
-        </div>
-        <div class="face back">
-          <img src="${p.back}" alt="${p.name} postcard back — details and QR code" loading="lazy" decoding="async" draggable="false" />
-          <span class="flip-badge">${FLIP_SVG} Back</span>
+          <img src="${p.cover}" alt="${p.name}" loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async" draggable="false" />
+          <span class="flip-badge">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v6M8 11h6"/>
+            </svg>
+            View
+          </span>
         </div>
       </div>
     `;
@@ -126,7 +121,7 @@ function buildCards() {
     thumb.setAttribute('aria-label', `Show ${p.name}`);
     thumb.innerHTML = `
       <span class="thumb-num">${String(i + 1).padStart(2, '0')}</span>
-      <img src="${p.front}" alt="" loading="lazy" decoding="async" draggable="false" />
+      <img src="${p.cover}" alt="" loading="lazy" decoding="async" draggable="false" />
     `;
     railTrack.appendChild(thumb);
 
@@ -135,7 +130,7 @@ function buildCards() {
     gc.dataset.index = i;
     gc.setAttribute('aria-label', `Open ${p.name}`);
     gc.innerHTML = `
-      <img src="${p.front}" alt="${p.name}" loading="lazy" decoding="async" draggable="false" />
+      <img src="${p.cover}" alt="${p.name}" loading="lazy" decoding="async" draggable="false" />
       <span class="gc-label"><span class="gc-num">${String(i + 1).padStart(2, '0')}</span>${p.name}</span>
     `;
     gridCards.appendChild(gc);
@@ -151,6 +146,7 @@ function buildCards() {
     el.addEventListener('click', () => {
       goTo(parseInt(el.dataset.index, 10));
       closeGridView();
+      openLightbox();
     });
   });
 }
@@ -167,9 +163,6 @@ function layout() {
     else if (diff === 2)     pos = 'far-right';
     else if (diff === n - 2) pos = 'far-left';
     el.dataset.pos = pos;
-    if (pos !== 'center' && el.classList.contains('is-flipped')) {
-      el.classList.remove('is-flipped');
-    }
   });
 
   const p = POSTCARDS[currentIndex];
@@ -187,7 +180,7 @@ function layout() {
   });
 }
 
-/* ---------- Interactions ---------- */
+/* ---------- Gallery interactions ---------- */
 function goTo(i) {
   const n = POSTCARDS.length;
   currentIndex = ((i % n) + n) % n;
@@ -200,7 +193,7 @@ function onCardClick(e) {
   const card = e.currentTarget;
   const i = parseInt(card.dataset.index, 10);
   if (i !== currentIndex) { goTo(i); return; }
-  card.classList.toggle('is-flipped');
+  openLightbox();          // center card → zoom into carousel
 }
 
 prevBtn.addEventListener('click', prev);
@@ -210,24 +203,23 @@ nextBtn.addEventListener('click', next);
 document.addEventListener('keydown', (e) => {
   if (!lightbox.hidden) {
     if (e.key === 'Escape' && !isKiosk) closeLightbox();
-    if (e.key === 'f' || e.key === 'F') lbCard.classList.toggle('is-flipped');
+    if (e.key === 'ArrowRight') lbGo(lbPage + 1);
+    if (e.key === 'ArrowLeft')  lbGo(lbPage - 1);
     return;
   }
   if (!gridOverlay.hidden && e.key === 'Escape') { closeGridView(); return; }
   if (e.key === 'ArrowRight') next();
   if (e.key === 'ArrowLeft')  prev();
-  if (e.key === 'f' || e.key === 'F') cardEls[currentIndex].classList.toggle('is-flipped');
-  if (e.key === 'z' || e.key === 'Z') openLightbox();
+  if (e.key === 'z' || e.key === 'Z' || e.key === 'Enter') openLightbox();
   if (e.key === 'g' || e.key === 'G') toggleGridView();
 });
 
-/* ---------- Swipe ---------- */
+/* ---------- Swipe on gallery (advance card) ---------- */
 let touchStartX = 0, touchStartY = 0, touchMoved = false, touchAxis = null;
 carousel.addEventListener('touchstart', (e) => {
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
-  touchMoved = false;
-  touchAxis = null;
+  touchMoved = false; touchAxis = null;
 }, { passive: true });
 carousel.addEventListener('touchmove', (e) => {
   const dx = e.touches[0].clientX - touchStartX;
@@ -243,7 +235,7 @@ carousel.addEventListener('touchend', (e) => {
   if (Math.abs(dx) > 50) (dx < 0 ? next() : prev());
 });
 
-/* ---------- Pointer parallax tilt ---------- */
+/* ---------- Pointer parallax tilt on center card ---------- */
 let tiltRaf = null;
 carousel.addEventListener('mousemove', (e) => {
   const center = cardEls[currentIndex];
@@ -257,9 +249,7 @@ carousel.addEventListener('mousemove', (e) => {
   tiltRaf = requestAnimationFrame(() => {
     const inner = center.querySelector('.card-inner');
     if (!inner) return;
-    const flipped = center.classList.contains('is-flipped');
-    const base = flipped ? 180 : 0;
-    inner.style.transform = `rotateY(${base + (-dx * 5)}deg) rotateX(${dy * 4}deg)`;
+    inner.style.transform = `rotateY(${-dx * 5}deg) rotateX(${dy * 4}deg)`;
   });
 });
 carousel.addEventListener('mouseleave', () => {
@@ -285,72 +275,123 @@ viewToggle.addEventListener('click', toggleGridView);
 closeGrid.addEventListener('click', closeGridView);
 gridOverlay.addEventListener('click', (e) => { if (e.target === gridOverlay) closeGridView(); });
 
-/* ---------- Lightbox + URL sync ---------- */
+/* =========================================================
+   Lightbox (6-page carousel)
+   ========================================================= */
+
+function buildLightboxTrack(postcard) {
+  lbTrack.innerHTML = '';
+  postcard.pages.forEach((src, i) => {
+    const slide = document.createElement('div');
+    slide.className = 'lb-slide';
+    slide.innerHTML = `<img src="${src}" alt="${postcard.name} — page ${i + 1}" decoding="async" draggable="false" />`;
+    lbTrack.appendChild(slide);
+  });
+  lbPageTotal.textContent = postcard.pages.length;
+
+  // Dots
+  lbDots.innerHTML = '';
+  postcard.pages.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'lb-dot';
+    d.setAttribute('aria-label', `Go to page ${i + 1}`);
+    d.addEventListener('click', (e) => { e.stopPropagation(); lbGo(i); });
+    lbDots.appendChild(d);
+  });
+}
+
+function lbGo(i) {
+  const total = POSTCARDS[currentIndex].pages.length;
+  lbPage = ((i % total) + total) % total;
+  lbTrack.style.transform = `translate3d(${-lbPage * 100}%, 0, 0)`;
+  lbPageNum.textContent = lbPage + 1;
+  $$('.lb-dot', lbDots).forEach((d, k) => d.classList.toggle('is-active', k === lbPage));
+}
+
 function openLightbox(opts = {}) {
   const p = POSTCARDS[currentIndex];
-  lbFront.src = p.front; lbFront.alt = `${p.name} front`;
-  lbBack.src  = p.back;  lbBack.alt  = `${p.name} back`;
-  lbCard.classList.toggle('is-flipped', cardEls[currentIndex].classList.contains('is-flipped'));
+  buildLightboxTrack(p);
+  lbPage = 0;
+  lbTrack.style.transition = 'none';
+  lbGo(0);
+  // re-enable transition next frame
+  requestAnimationFrame(() => { lbTrack.style.transition = ''; });
+
+  lbProduct.textContent = p.name;
   lbShareUrl.textContent = buildShareURL(p.slug);
+
   lightbox.hidden = false;
   document.body.style.overflow = 'hidden';
 
-  // URL sync — push unless we're already on that URL (e.g. arrived via QR)
   if (!opts.skipURL) {
     const here = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
     if (here !== p.slug) pushURL(p.slug);
   }
 }
+
 function closeLightbox() {
   lightbox.hidden = true;
   document.body.style.overflow = '';
   if (!isKiosk) pushURL(null);
 }
+
 lightboxClose.addEventListener('click', closeLightbox);
-lightboxFlip.addEventListener('click', () => lbCard.classList.toggle('is-flipped'));
+lbPrev.addEventListener('click', (e) => { e.stopPropagation(); lbGo(lbPage - 1); });
+lbNext.addEventListener('click', (e) => { e.stopPropagation(); lbGo(lbPage + 1); });
 lightbox.addEventListener('click', (e) => { if (e.target === lightbox && !isKiosk) closeLightbox(); });
-lbCard.addEventListener('click', (e) => { e.stopPropagation(); lbCard.classList.toggle('is-flipped'); });
+
+/* Click on the card itself: advance to next page (so users can tap-tap through) */
+lbCard.addEventListener('click', (e) => {
+  e.stopPropagation();
+  lbGo(lbPage + 1);
+});
+
+/* Swipe inside the lightbox to change page */
+let lbTouchX = 0, lbTouchY = 0, lbMoved = false, lbAxis = null;
+lbCard.addEventListener('touchstart', (e) => {
+  lbTouchX = e.touches[0].clientX;
+  lbTouchY = e.touches[0].clientY;
+  lbMoved = false; lbAxis = null;
+}, { passive: true });
+lbCard.addEventListener('touchmove', (e) => {
+  const dx = e.touches[0].clientX - lbTouchX;
+  const dy = e.touches[0].clientY - lbTouchY;
+  if (!lbAxis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    lbAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  }
+  if (lbAxis === 'x' && Math.abs(dx) > 8) lbMoved = true;
+}, { passive: true });
+lbCard.addEventListener('touchend', (e) => {
+  if (!lbMoved || lbAxis !== 'x') return;
+  const dx = e.changedTouches[0].clientX - lbTouchX;
+  if (Math.abs(dx) > 40) lbGo(lbPage + (dx < 0 ? 1 : -1));
+});
 
 /* Copy URL */
-lbCopyBtn.addEventListener('click', async () => {
+lbCopyBtn.addEventListener('click', async (e) => {
+  e.stopPropagation();
   const url = lbShareUrl.textContent.trim();
   try {
     await navigator.clipboard.writeText(url);
-    lbCopyBtn.classList.add('is-copied');
-    const span = lbCopyBtn.querySelector('span');
-    const prev = span.textContent;
-    span.textContent = 'Copied';
-    setTimeout(() => {
-      span.textContent = prev;
-      lbCopyBtn.classList.remove('is-copied');
-    }, 1500);
   } catch (err) {
-    // Fallback for older browsers
     const ta = document.createElement('textarea');
     ta.value = url; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
   }
-});
-
-/* Double-tap → lightbox */
-let lastTap = 0;
-carousel.addEventListener('dblclick', (e) => {
-  const card = e.target.closest('.card');
-  if (card && parseInt(card.dataset.index, 10) === currentIndex) openLightbox();
-});
-carousel.addEventListener('touchend', (e) => {
-  const now = Date.now();
-  if (now - lastTap < 320 && !touchMoved) {
-    const card = e.target.closest('.card');
-    if (card && parseInt(card.dataset.index, 10) === currentIndex) openLightbox();
-  }
-  lastTap = now;
+  lbCopyBtn.classList.add('is-copied');
+  const span = lbCopyBtn.querySelector('span');
+  const prev = span.textContent;
+  span.textContent = 'Copied';
+  setTimeout(() => {
+    span.textContent = prev;
+    lbCopyBtn.classList.remove('is-copied');
+  }, 1500);
 });
 
 /* Back/forward navigation */
 window.addEventListener('popstate', () => {
-  if (isKiosk) return; // kiosk pages don't navigate within the gallery
+  if (isKiosk) return;
   const slug = getSlugFromURL();
   if (slug) {
     const idx = findIndexBySlug(slug);
@@ -358,9 +399,10 @@ window.addEventListener('popstate', () => {
       currentIndex = idx;
       layout();
       openLightbox({ skipURL: true });
+      return;
     }
-  } else {
-    if (!lightbox.hidden) closeLightbox.call(null);
+  }
+  if (!lightbox.hidden) {
     lightbox.hidden = true;
     document.body.style.overflow = '';
   }
@@ -372,7 +414,6 @@ $('#year').textContent = new Date().getFullYear();
 /* ---------- Init ---------- */
 buildCards();
 
-// Detect direct-URL visit and enter kiosk mode if matched
 (function bootFromURL() {
   const slug = getSlugFromURL();
   if (!slug) { layout(); return; }
@@ -383,13 +424,14 @@ buildCards();
   isKiosk = true;
   document.body.classList.add('is-kiosk');
   openLightbox({ skipURL: true });
-  // Normalize URL to clean form (in case arrived via ?p= or #)
   replaceURL(slug);
 })();
 
 window.addEventListener('load', () => {
-  POSTCARDS.forEach((p) => {
-    const a = new Image(); a.src = p.front;
-    const b = new Image(); b.src = p.back;
+  // Preload page 1 of every product immediately; rest after idle
+  POSTCARDS.forEach(p => { const im = new Image(); im.src = p.cover; });
+  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 800));
+  idle(() => {
+    POSTCARDS.forEach(p => p.pages.slice(1).forEach(src => { const im = new Image(); im.src = src; }));
   });
 });

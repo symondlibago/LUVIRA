@@ -90,16 +90,30 @@
     <div class="grid-cards" id="gridCards"></div>
   </div>
 
-  <!-- Lightbox -->
+  <!-- Lightbox (6-page carousel) -->
   <div class="lightbox" id="lightbox" hidden>
     <button class="lightbox-close" id="lightboxClose" aria-label="Close zoom">✕</button>
-    <button class="lightbox-flip" id="lightboxFlip" aria-label="Flip card">⟳ Flip</button>
-    <div class="lightbox-card" id="lightboxCard">
-      <div class="lb-inner">
-        <img id="lbFront" alt="" />
-        <img id="lbBack"  alt="" />
+
+    <div class="lb-stage">
+      <button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous page">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15 6l-6 6 6 6"/></svg>
+      </button>
+
+      <div class="lightbox-card" id="lightboxCard">
+        <div class="lb-track" id="lbTrack"></div>
       </div>
+
+      <button class="lb-nav lb-next" id="lbNext" aria-label="Next page">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/></svg>
+      </button>
     </div>
+
+    <div class="lb-controls">
+      <div class="lb-counter" id="lbCounter"><span id="lbPageNum">1</span><span class="muted"> / <span id="lbPageTotal">6</span></span></div>
+      <div class="lb-dots" id="lbDots"></div>
+      <div class="lb-product" id="lbProduct">Semaglutide</div>
+    </div>
+
     <div class="lb-share" id="lbShare">
       <span class="lb-share-label">QR URL</span>
       <code class="lb-share-url" id="lbShareUrl">/</code>
