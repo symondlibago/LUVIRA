@@ -3,7 +3,7 @@
   "rewrites": [
     { "source": "/semaglutide",      "destination": "/index.html" },
     { "source": "/tesamorelin",      "destination": "/index.html" },
-    { "source": "/tirzeptazide",     "destination": "/index.html" },
+    { "source": "/tirzepatide",      "destination": "/index.html" },
     { "source": "/bpc-157",          "destination": "/index.html" },
     { "source": "/retatrutide",      "destination": "/index.html" },
     { "source": "/nad",              "destination": "/index.html" },

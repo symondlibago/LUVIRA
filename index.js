@@ -4,24 +4,26 @@
    Zoom-in opens a 6-page carousel.
    ========================================================= */
 
+/* Each product shows 4 pages:
+   [1 bottle (mg-variants collapsed to one)] → what-is-it → reconstitution → dosage chart.
+   `pages` lists the exact image numbers in public/.  The extra bottle-variant
+   images (e.g. 2,3,4 for Semaglutide) are simply not referenced. */
 const PRODUCTS = [
-  { slug: 'semaglutide',       name: 'Semaglutide'                         },
-  { slug: 'tesamorelin',       name: 'Tesamorelin'                         },
-  { slug: 'tirzeptazide',      name: 'Tirzeptazide'                        },
-  { slug: 'bpc-157',           name: 'BPC-157'                             },
-  { slug: 'retatrutide',       name: 'Retatrutide'                         },
-  { slug: 'nad',               name: 'NAD+'                                },
-  { slug: 'ghk-cu',            name: 'GHK-Cu'                              },
-  { slug: 'thymosin-alpha-1',  name: 'Thymosin Alpha 1'                    },
-  { slug: 'mots-c',            name: 'MOTS-C'                              },
-  { slug: 'igf-1-lr3',         name: 'IGF-1-LR3'                           },
-  { slug: 'glow-blend',        name: 'BPC-157 + TB4 + GHK-Cu (Glow Blend)' },
+  { slug: 'semaglutide',      name: 'Semaglutide',      pages: [1, 5, 6, 7]     },
+  { slug: 'tesamorelin',      name: 'Tesamorelin',      pages: [8, 11, 12, 13]  },
+  { slug: 'tirzepatide',      name: 'Tirzepatide',      pages: [14, 18, 19, 20] },
+  { slug: 'bpc-157',          name: 'BPC-157',          pages: [21, 23, 24, 25] },
+  { slug: 'retatrutide',      name: 'Retatrutide',      pages: [26, 28, 29, 30] },
+  { slug: 'nad',              name: 'NAD+',             pages: [31, 33, 34, 35] },
+  { slug: 'ghk-cu',           name: 'GHK-Cu',           pages: [36, 39, 40, 41] },
+  { slug: 'thymosin-alpha-1', name: 'Thymosin Alpha 1', pages: [42, 44, 45, 46] },
+  { slug: 'mots-c',           name: 'MOTS-C',           pages: [47, 49, 50, 51] },
+  { slug: 'igf-1-lr3',        name: 'IGF-1-LR3',        pages: [52, 53, 54, 55] },
+  { slug: 'glow-blend',       name: 'BPC-157 + TB4 + GHK-Cu (Glow Blend)', pages: [56, 57, 58, 59] },
 ];
 
-// Build the 6-page arrays automatically: postcard N → images (N*6-5)..(N*6)
-const POSTCARDS = PRODUCTS.map((p, i) => {
-  const start = i * 6 + 1;
-  const pages = Array.from({ length: 6 }, (_, k) => `public/${start + k}.png`);
+const POSTCARDS = PRODUCTS.map((p) => {
+  const pages = p.pages.map(n => `public/${n}.png`);
   return { ...p, cover: pages[0], pages };
 });
 
